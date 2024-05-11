@@ -7,7 +7,11 @@ from utils_general import run_scheduler_step
 from utils_mitsuba import setup_shadowscene
 
 if torch.cuda.is_available():
+    print("is available")
     mi.set_variant('cuda_ad_rgb')
+    
+    # device = 'cpu'
+    # mi.set_variant('scalar_rgb')
 
 
 def apply_translation(theta, p, mat_id, init_vpos):
