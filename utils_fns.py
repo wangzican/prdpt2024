@@ -7,6 +7,9 @@ def grad_of_gaussiankernel(x, sigma):
     grad_of_gauss = -(x / sigma ** 2) * calc_gauss(x, mu=0.0, sigma=sigma)
     return grad_of_gauss
 
+def hess_of_gaussiankernel(x, sigma):
+    hess = (x**2/sigma**2 - 1) / sigma**2 * calc_gauss(x, mu=0.0, sigma=sigma)
+    return hess
 
 def calc_gauss(x, mu=0.0, sigma=1.0):
     return 1.0 / (sigma * (2.0 * np.pi)**0.5) * torch.exp(-0.5 * ((x - mu) / sigma) ** 2)
@@ -21,7 +24,6 @@ def mc_estimate(f_xi, p_xi):
 def convolve(kernel_fn, render_fn, importance_fn, theta, nsamples, context_args, *args):
     # sample, get kernel(samples), get render(samples), return mc estimate of output
     # expect theta to be of shape [1, n], where n is dimensionality
-
     dim = theta.shape[-1]
     sigma = context_args['sigma']
     update_fn = context_args['update_fn']  # fn pointer to e.g. apply_rotation
@@ -41,13 +43,12 @@ def convolve(kernel_fn, render_fn, importance_fn, theta, nsamples, context_args,
 
     # shift samples around current parameter
     theta_p = torch.cat([theta] * nsamples, dim=0) - tau
-
+    # print(theta_p)
     renderings, avg_img = render_fn(theta_p, update_fn, context_args)    # output shape [N]
 
     # weight output by kernel, mc-estimate gradient
     output = renderings.unsqueeze(-1) * weights
     forward_output = mc_estimate(output, pdf)
-
     return forward_output, avg_img
 
 
@@ -118,3 +119,14 @@ def smoothFn(func=None, context_args=None, device='cuda'):
         return SmoothedFunc.apply(input_tensor, context_args, *args)
 
     return wrapper
+
+
+def smoothFn_fd(func, input_tensor, context_args, *args):
+    "scalar output for finite difference"
+    original_input_shape = input_tensor.shape
+    importance_fn = importance_gradgauss
+
+    forward_output, avg_img = convolve(grad_of_gaussiankernel, func, importance_fn, input_tensor,
+                                        context_args['nsamples'], context_args, args)
+    print(forward_output.mean())
+    return forward_output.mean()

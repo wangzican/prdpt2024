@@ -47,6 +47,7 @@ def plt_errors(img_err, param_err, title):
     imax, pmax = max(img_err), max(param_err)
     plt.plot([x / pmax for x in param_err], c='blue', label='Param. MSE (norm.)')
     plt.plot([x / imax for x in img_err], c='orange', label='Img. MSE (norm.)')
+    plt.ylim(-0.1, 1.1)
     plt.title(title)
     plt.legend()
     plt.show()

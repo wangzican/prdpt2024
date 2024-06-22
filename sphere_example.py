@@ -2,7 +2,7 @@ import torch
 import drjit as dr
 import mitsuba as mi
 
-from utils_optim import run_optimization
+from utils_optim import run_optimization, run_lbfgs_optimization, run_cg_optimization
 from utils_general import run_scheduler_step
 from utils_mitsuba import setup_shadowscene
 
@@ -27,11 +27,12 @@ if __name__ == '__main__':
     hparams = {'resx': 256,
                'resy': 192,
                'nsamples': 1,
-               'sigma': 0.5,
+               'sigma': 0.05,#0.5,
                'render_spp': 32,
                'initial_translation': [-0.5, 2.5],
                'gt_translation': [-1.5, 1.0],
-               'learning_rate': 2e-2,
+               'learning_rate': 2e-2, # 1st order
+            #    'learning_rate': 0.9, # lbfgs
                'epochs': 400,
                'sigma_annealing': True,
                'anneal_const_first': 200,
@@ -55,6 +56,12 @@ if __name__ == '__main__':
 
     # --------------- set up optimizer:
     optim = torch.optim.Adam([initial_translation], lr=hparams['learning_rate'])
+    # optim = torch.optim.LBFGS([initial_translation],
+    #                           lr=1,
+    #                           history_size=10, 
+    #                           max_iter=1, 
+    #                           line_search_fn="strong_wolfe")
+
 
     # --------------- set up scene:
     scene, params, mat_id, initial_vertex_positions = setup_shadowscene(hparams)
@@ -66,7 +73,7 @@ if __name__ == '__main__':
                 'sampler': 'importance', 'antithetic': True, 'nsamples': hparams['nsamples'],       # ours
                 'sigma': hparams['sigma'], 'device': device}                                        # ours
 
-    run_optimization(hparams=hparams,
+    run_cg_optimization(hparams=hparams,
                      optim=optim,
                      theta=initial_translation,
                      gt_theta=gt_translation,
