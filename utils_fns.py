@@ -7,6 +7,9 @@ def grad_of_gaussiankernel(x, sigma, *args):
     grad_of_gauss = -(x / sigma ** 2) * calc_gauss(x, mu=0.0, sigma=sigma)
     return grad_of_gauss
 
+def gauss(x, sigma, *args):
+    return calc_gauss(x, mu=0.0, sigma=sigma)
+
 def hess_of_gaussiankernel(x, sigma, diag_approx=False):
     '''
     Get the hessian of gaussian, diag_approx is to approximate with only diagonal
@@ -124,6 +127,45 @@ def smoothFn(func=None, context_args=None, device='cuda'):
                 importance_fn = importance_gradgauss
 
                 forward_output, avg_img = convolve(grad_of_gaussiankernel, func, importance_fn, mc_estimate, 
+                                                   input_tensor, context_args['nsamples'], context_args, args=args)
+
+                # save for bw pass
+                ctx.fw_out = forward_output
+                ctx.original_input_shape = original_input_shape
+
+                return forward_output.mean(), avg_img
+
+            @staticmethod
+            def backward(ctx, dy, dz):
+                # dz is grad for avg_img
+                # Pull saved tensors
+                original_input_shape = ctx.original_input_shape
+                fw_out = ctx.fw_out
+                grad_in_chain = dy * fw_out
+
+                return grad_in_chain.reshape(original_input_shape), None
+
+        return SmoothedFunc.apply(input_tensor, context_args, *args)
+
+    return wrapper
+
+
+
+def smoothFn_forward(func=None, context_args=None, device='cuda'):
+    if func is None:
+        return functools.partial(smoothFn, context_args=context_args, device=device)
+
+    @functools.wraps(func)
+    def wrapper(input_tensor, context_args, *args):
+        class SmoothedFunc(torch.autograd.Function):
+
+            @staticmethod
+            def forward(ctx, input_tensor, context_args, *args):
+
+                original_input_shape = input_tensor.shape
+                importance_fn = importance_gradgauss
+
+                forward_output, avg_img = convolve(gauss, func, importance_fn, mc_estimate, 
                                                    input_tensor, context_args['nsamples'], context_args, args=args)
 
                 # save for bw pass
