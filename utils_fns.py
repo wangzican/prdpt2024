@@ -44,7 +44,7 @@ def mc_estimate_hess(f_xi, p_xi):
     estimate = 1. / N * (f_xi / p_xi).sum(dim=0)  # average along batch axis, leave dimension axis unchanged
     return estimate
 
-def convolve(kernel_fn, render_fn, importance_fn, mc_fn, theta, nsamples, context_args, **kargs):
+def convolve_mi(kernel_fn, render_fn, importance_fn, mc_fn, theta, nsamples, context_args, **kargs):
     # sample, get kernel(samples), get render(samples), return mc estimate of output
     # expect theta to be of shape [1, n], where n is dimensionality
     dim = theta.shape[-1]
@@ -52,11 +52,13 @@ def convolve(kernel_fn, render_fn, importance_fn, mc_fn, theta, nsamples, contex
     update_fn = context_args['update_fn']  # fn pointer to e.g. apply_rotation
 
     if context_args['sampler'] == 'uniform':
-        raise NotImplementedError("for now only IS sampler supported")
+        tau = uniform(nsamples, context_args['antithetic'], dim, context_args['device'])
 
-    # get importance-sampled taus
-    tau, pdf = importance_fn(nsamples, sigma, context_args['antithetic'], dim, context_args['device'])
-
+    if context_args['sampler'] == 'importance':
+        # get importance-sampled taus
+        tau, pdf = importance_fn(nsamples, sigma, context_args['antithetic'], dim, context_args['device'])
+    
+    # print(tau.shape)
     # get kernel weight at taus
     diag_approx = kargs.get('diag_approx', False)
     weights = kernel_fn(tau, sigma, diag_approx)
@@ -77,12 +79,29 @@ def convolve(kernel_fn, render_fn, importance_fn, mc_fn, theta, nsamples, contex
 
     # weight output by kernel, mc-estimate gradient
     output = renderings * weights
-    forward_output = mc_fn(output, pdf)
+    if context_args['sampler'] == 'uniform':
+        forward_output = output.mean(dim=0)
+    if context_args['sampler'] == 'importance':
+        forward_output = mc_fn(output, pdf)
     
     return forward_output, avg_img
 
 
-def importance_gradgauss(n_samples, sigma, is_antithetic, dim, device):
+def uniform(n_samples, is_antithetic, dim, device, low=-1.0, high=1.0):
+    eps = 0.00001
+    samples = torch.rand(n_samples, dim).to(device)
+    
+    if is_antithetic:
+        samples = torch.cat([samples, low + high - samples])
+
+    
+    # avoid NaNs bc of numerical instabilities in log
+    samples[torch.isclose(samples, torch.ones_like(samples))] -= eps
+    samples[torch.isclose(samples, torch.zeros_like(samples))] += eps
+    
+    return samples
+
+def importance_gradgauss_1d(n_samples, sigma, is_antithetic, dim, device):
     eps = 0.00001
     randoms = torch.rand(n_samples, dim).to(device)
 
@@ -124,9 +143,9 @@ def smoothFn(func=None, context_args=None, device='cuda'):
             def forward(ctx, input_tensor, context_args, *args):
 
                 original_input_shape = input_tensor.shape
-                importance_fn = importance_gradgauss
+                importance_fn = importance_gradgauss_1d
 
-                forward_output, avg_img = convolve(grad_of_gaussiankernel, func, importance_fn, mc_estimate, 
+                forward_output, avg_img = convolve_mi(grad_of_gaussiankernel, func, importance_fn, mc_estimate, 
                                                    input_tensor, context_args['nsamples'], context_args, args=args)
 
                 # save for bw pass
@@ -163,9 +182,9 @@ def smoothFn_forward(func=None, context_args=None, device='cuda'):
             def forward(ctx, input_tensor, context_args, *args):
 
                 original_input_shape = input_tensor.shape
-                importance_fn = importance_gradgauss
+                importance_fn = importance_gradgauss_1d
 
-                forward_output, avg_img = convolve(gauss, func, importance_fn, mc_estimate, 
+                forward_output, avg_img = convolve_mi(gauss, func, importance_fn, mc_estimate, 
                                                    input_tensor, context_args['nsamples'], context_args, args=args)
 
                 # save for bw pass
@@ -192,8 +211,8 @@ def smoothFn_hess(func, input, context_args, device='cuda', **kargs):
     '''
     Get the hessian of the convolved function
     '''
-    importance_fn = importance_gradgauss
-    hess, avg_img = convolve(hess_of_gaussiankernel, func, importance_fn, mc_estimate_hess,
+    importance_fn = importance_gradgauss_1d
+    hess, avg_img = convolve_mi(hess_of_gaussiankernel, func, importance_fn, mc_estimate_hess,
                                        input, context_args['nsamples'], context_args, diag_approx=kargs['diag_approx'])
     return hess
 
