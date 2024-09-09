@@ -1,0 +1,105 @@
+<scene version="2.1.0">
+
+<!-- Defaults, these can be set via the command line: -Darg=value -->
+
+	<default name="spp" value="4096"/>
+	<default name="resx" value="512"/>
+	<default name="resy" value="384"/>
+
+<!-- Camera and Rendering Parameters -->
+
+	<integrator type="prb_reparam">
+		<integer name="max_depth" value="6"/>
+		<integer name="reparam_max_depth" value="2"/>
+	</integrator>
+	<sensor type="perspective">
+		<string name="fov_axis" value="x"/>
+		<float name="fov" value="39.597755"/>
+		<float name="principal_point_offset_x" value="0.000000"/>
+		<float name="principal_point_offset_y" value="-0.000000"/>
+		<float name="near_clip" value="0.100000"/>
+		<float name="far_clip" value="100.000000"/>
+		<transform name="to_world">
+			<rotate x="1" angle="-144.75937077870876"/>
+			<rotate y="1" angle="-42.69199836942173"/>
+			<rotate z="1" angle="179.999991348578"/>
+			<translate value="10.312559 10.958763 11.626478"/>
+		</transform>
+		<sampler type="independent">
+			<integer name="sample_count" value="$spp"/>
+		</sampler>
+		<film type="hdrfilm">
+			<integer name="width" value="$resx"/>
+			<integer name="height" value="$resy"/>
+			<boolean name="sample_border" value="true"/>
+		</film>
+	</sensor>
+
+<!-- Materials -->
+
+	<bsdf type="twosided" id="mat-Material.001">
+		<bsdf type="principled">
+			<rgb value="0.800000 0.674413 0.456417" name="base_color"/>
+			<float name="spec_tint" value="0.000000"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="0.000000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.500000"/>
+			<float name="sheen" value="0.000000"/>
+			<float name="sheen_tint" value="0.500000"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.173205"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+	<bsdf type="diffuse" id="mat-Carrara Marble">
+		<rgb value="1.000000 0.000000 0.300000" name="reflectance"/>
+	</bsdf>
+    <bsdf type="dielectric" id="mat-Glass">
+        <float name="int_ior" value="1.504"/>
+        <float name="ext_ior" value="1.0"/>
+    </bsdf>
+
+<!-- Emitters -->
+
+	<emitter type="constant">
+		<rgb value="0.028557 0.073040 0.077427" name="radiance"/>
+	</emitter>
+<!--	<shape type="rectangle">-->
+<!--		<boolean name="flip_normals" value="true"/>-->
+<!--		<transform name="to_world">-->
+<!--			<matrix value="0.500000 0.000000 -0.000002 -0.000000
+ 							   0.000002 -0.302319 0.398251 16.652657
+ 							   -0.000001 -0.398251 -0.302319 -13.019255
+ 							   0.000000 0.000000 0.000000 1.000000"/>-->
+<!--		</transform>-->
+<!--	<shape type="sphere">-->
+<!--    	<point name="center" x="0.0" y="16" z="-13.0"/>-->
+<!--    	<float name="radius" value="0.5"/>-->
+	<shape type="cube">
+	    <transform name="to_world">
+    	    <translate x="0.0" y="16.0" z="-13.0"/>
+    	</transform>
+		<emitter type="area">
+<!--			sphere: <rgb value="1250.000000 1100.100098 800.000000" name="radiance"/>-->
+			<rgb value="225.000000 200.100098 165.000000" name="radiance"/>
+		</emitter>
+		<bsdf type="null"/>
+	</shape>
+
+<!-- Shapes -->
+
+	<shape type="ply">
+		<string name="filename" value="meshes/Plane.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-Material.001" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/Cube.ply"/>
+		<ref id="mat-Carrara Marble" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/Sphere.ply"/>
+		<ref id="mat-Glass" name="bsdf"/>
+	</shape>
+</scene>

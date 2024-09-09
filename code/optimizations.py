@@ -216,7 +216,7 @@ def adam_opt(func, x0, max_iter, log_func, f_args, kernel_args, sampler_args, op
                         kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device)
     diff_func_check = smoothFn_gradient(func=func, sampler='importance_gradgauss', n=500, f_args=f_args,
                         kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device)
-    img_errors, param_errors = [], []
+    img_errors, param_errors, iter_times = [], [], []
     convergence = 0
     converged = False
     sigma = self_sampler_args['sigma']
@@ -230,6 +230,7 @@ def adam_opt(func, x0, max_iter, log_func, f_args, kernel_args, sampler_args, op
         x0.grad = diff_func(x0.unsqueeze(0)).squeeze(0)
         optim.step()
         iter_time = time.time() - start_time
+        iter_times.append(iter_time)
         img_errors, param_errors = log_func(x0.unsqueeze(0), img_errors, param_errors, i, interval=opt_args['plot_interval'], iter_time=iter_time)
         if torch.norm(diff_func(x0.unsqueeze(0))) < opt_args['tol']:
             if converged:
@@ -247,8 +248,53 @@ def adam_opt(func, x0, max_iter, log_func, f_args, kernel_args, sampler_args, op
             converged = False
         if opt_args.get('sigma_annealing', False):
             sigma = sigma_scheduler(i, opt_args, sigma)
-    return x0, img_errors, param_errors
-    
+    return x0, img_errors, param_errors, iter_times
+
+def mi_opt(func, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt_args, ctx_args, device='cuda'):
+    '''
+    opt_args: 'epochs', 'learning_rate', 'tol', 'plot_interval', 'conv_thres', 'sigma_annealing', 'sigma', 'anneal_const_first', 'anneal_sigma_min', 'anneal_const_last'
+    '''
+    self_kernel_args = kernel_args.copy()
+    self_sampler_args = sampler_args.copy()
+    optim = torch.optim.Adam([x0], lr=opt_args['learning_rate'])
+    conv_thres = opt_args.get('conv_thres', 10)
+    diff_func = smoothFn_gradient_mi(func=func, n=ctx_args['nsamples'], f_args=f_args,
+                        kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device)
+    diff_func_check = smoothFn_gradient_mi(func=func, n=500, f_args=f_args,
+                        kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device)
+    img_errors, param_errors, iter_times = [], [], []
+    convergence = 0
+    converged = False
+    sigma = self_sampler_args['sigma']
+    for i in range(max_iter):
+        start_time = time.time()
+        optim.zero_grad()
+        self_kernel_args['sigma'] = sigma
+        self_sampler_args['sigma'] = sigma
+        diff_func = smoothFn_gradient_mi(func=func, n=ctx_args['nsamples'], f_args=f_args,
+                                kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device) 
+        x0.grad = diff_func(x0.unsqueeze(0)).squeeze(0)
+        optim.step()
+        iter_time = time.time() - start_time
+        iter_times.append(iter_time)
+        img_errors, param_errors = log_func(x0.unsqueeze(0), img_errors, param_errors, i, interval=opt_args['plot_interval'], iter_time=iter_time)
+        if torch.norm(diff_func(x0.unsqueeze(0))) < opt_args['tol']:
+            if converged:
+                convergence += 1
+            else:
+                convergence = 1
+            converged = True
+            # print(convergence)
+            if convergence >= conv_thres:
+                if torch.norm(diff_func_check(x0.unsqueeze(0))) < opt_args['tol']:
+                    break
+                else:
+                    convergence = 0
+        else:
+            converged = False
+        if opt_args.get('sigma_annealing', False):
+            sigma = sigma_scheduler(i, opt_args, sigma)
+    return x0, img_errors, param_errors, iter_times
     
 
 def newton_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt_args, ctx_args, device='cuda'):
@@ -279,7 +325,7 @@ def newton_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, 
     x_copy = x0.cpu().squeeze().detach().numpy()
     x_list.append(x_copy)
     
-    img_errors, param_errors = [], []
+    img_errors, param_errors, iter_times = [], [], []
     convergence = 0
     converged = False
     for i in range(max_iter):
@@ -290,6 +336,7 @@ def newton_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, 
         
         hess_func = smoothFn_hessian(func=f, sampler='importance_hessgauss', n=n_samples, f_args=f_args,
                                     kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device)
+        start_time = time.time()
         # adaptive learning rate
         lr = start_lr*(1-i/max_iter+1e-3)
         deriv = diff_func(x).T
@@ -322,10 +369,11 @@ def newton_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, 
                         convergence = 0
             else:
                 converged = False
-        img_errors, param_errors = log_func(x, img_errors, param_errors, i, interval=interval)
+        iter_times.append(time.time()-start_time)   
+        img_errors, param_errors = log_func(x, img_errors, param_errors, i, interval=interval, iter_time=time.time()-start_time)
         if opt_args.get('sigma_annealing', False):
             sigma = sigma_scheduler(i, opt_args, sigma)
-    return x, np.array(x_list)
+    return x, img_errors, param_errors, iter_times
 
 
 
@@ -354,14 +402,14 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
     TR_bound = opt_args.get('TR_bound', 'dynamic') # fixed value or dynamic
     Using_HVP = opt_args.get('HVP', True) # use faster HVP instead
     sigma = self_kernel_args['sigma']
-    
+    print('Starting NCG with sigma: {:2f}, TR: {}, TR_bound: {}, HVP: {}'.format(sigma, TR, TR_bound, Using_HVP))
     diff_func = smoothFn_gradient(func=f, sampler='importance_gradgauss', n=n_samples, f_args=f_args,
                             kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device) 
     
     hess_func = smoothFn_hessian(func=f, sampler='importance_hessgauss', n=n_samples, f_args=f_args,
                                 kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device)
     hvp_func = smoothFn_hv_fd(func=f, n=n_samples, f_args=f_args, kernel_args=self_kernel_args, sampler_args=self_sampler_args, epsilon=sigma/3, device=device)
-    img_errors, param_errors = [], []
+    img_errors, param_errors, iter_times = [], [], []
     x = x0.unsqueeze(0)
     k = 0
     r = -diff_func(x).T # r should be column vector
@@ -400,11 +448,11 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
             else:
                 # modify the hessian to be pd(follow the gradient)
                 modified = True
-                denom = 1#d.T@hessian@d
+                denom = 1/sigma#d.T@hessian@d
             alpha = -(diff_func(x)@d / denom).item()
             step = alpha*d.squeeze()
             if step.norm() > TR_bound and TR:
-                step = step/step.norm()*TR_bound
+                step = step/step.norm()*TR_bound*sigma
                 
             x = x + step
             if alpha**2 * delta_d <= NR_tol:
@@ -421,6 +469,7 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
         # if param_errors and param_errors[-1] < 0.03:
         #     hessian_epsilon = 8e-4
         end_time = time.time()
+        iter_times.append(end_time-start_time)
         img_errors, param_errors = log_func(x, img_errors, param_errors, i, interval=interval, iter_time=end_time-start_time)
         if delta_new <= tolerance or (len(x_list) > 20 and torch.linalg.vector_norm(r) < tol and np.sum((x_list[-1] - x_list[-2])**2) < tol):
             if converged and not modified:
@@ -443,7 +492,7 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
             converged = False
         if opt_args.get('sigma_annealing', False):
             sigma = sigma_scheduler(i, opt_args, sigma)
-    return x, img_errors, param_errors
+    return x, img_errors, param_errors, iter_times
 
 
 def BFGS_opt_torch(func, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt_args, ctx_args, device='cuda'):

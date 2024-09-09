@@ -1,0 +1,278 @@
+<scene version="2.1.0">
+
+<!-- Defaults, these can be set via the command line: -Darg=value -->
+
+	<default name="spp" value="4096"/>
+	<default name="resx" value="resolution_x"/>
+	<default name="resy" value="resolution_y"/>
+
+<!-- Camera and Rendering Parameters -->
+
+	<integrator type="integrator_type">
+		<integer name="max_depth" value="depth_value"/>
+		<integer name="reparam_max_depth" value="reparam_depth_value"/>
+	</integrator>
+	<sensor type="perspective">
+		<string name="fov_axis" value="x"/>
+		<float name="fov" value="39.597755"/>
+		<float name="principal_point_offset_x" value="0.000000"/>
+		<float name="principal_point_offset_y" value="-0.000000"/>
+		<float name="near_clip" value="0.100000"/>
+		<float name="far_clip" value="100.000000"/>
+		<transform name="to_world">
+			<rotate x="1" angle="-359.999982697156"/>
+			<rotate y="1" angle="-90.00000250447816"/>
+			<translate value="17.658024 -0.000010 0.000007"/>
+		</transform>
+		<sampler type="independent">
+			<integer name="sample_count" value="$spp"/>
+		</sampler>
+		<film type="hdrfilm">
+			<integer name="width" value="$resx"/>
+			<integer name="height" value="$resy"/>
+			<boolean name="sample_border" value="true"/>
+		</film>
+	</sensor>
+
+<!-- Materials -->
+
+<!--	<bsdf type="twosided" id="mat-Material.001">-->
+<!--		<bsdf type="principled">-->
+<!--			<rgb value="0.800000 0.800000 0.800000" name="base_color"/>-->
+<!--			<float name="spec_tint" value="0.000000"/>-->
+<!--			<float name="spec_trans" value="0.000000"/>-->
+<!--			<float name="metallic" value="0.000000"/>-->
+<!--			<float name="anisotropic" value="0.000000"/>-->
+<!--			<float name="roughness" value="0.500000"/>-->
+<!--			<float name="sheen" value="0.000000"/>-->
+<!--			<float name="sheen_tint" value="0.500000"/>-->
+<!--			<float name="clearcoat" value="0.000000"/>-->
+<!--			<float name="clearcoat_gloss" value="0.173205"/>-->
+<!--			<float name="specular" value="0.500000"/>-->
+<!--		</bsdf>-->
+<!--	</bsdf>-->
+
+	<bsdf type="plastic" id="mat-Material.001">
+		<texture name="diffuse_reflectance" type="bitmap">
+			<string name="filename" value="textures/grid_50.png" />
+			<string name="filter_type" value="bilinear" />
+		</texture>
+		<rgb name="specular_reflectance" value="0.0, 0.0, 0.0"/>
+	</bsdf>
+
+	<bsdf type="twosided" id="mat-Material.003">
+		<bsdf type="principled">
+			<rgb value="0.800000 0.261964 0.041545" name="base_color"/>
+			<float name="spec_tint" value="0.000000"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="0.000000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.500000"/>
+			<float name="sheen" value="0.000000"/>
+			<float name="sheen_tint" value="0.500000"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.173205"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+
+<!--	fancy add. stuff: -->
+	<bsdf type="roughconductor" id="mat-Metal">
+		<string name="material" value="Al"/>
+		<string name="distribution" value="ggx"/>
+		<float name="alpha_u" value="0.05"/>
+		<float name="alpha_v" value="0.3"/>
+	</bsdf>
+	<bsdf type="twosided" id="mat-paper">
+		<bsdf type="principled">
+			<texture type="bitmap" name="base_color">
+				<string name="filename" value="textures/Folha de livro canto.jpg"/>
+			</texture>
+			<float name="spec_tint" value="0.000000"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="0.000000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.650000"/>
+			<float name="sheen" value="0.000000"/>
+			<float name="sheen_tint" value="0.500000"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.173205"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+	<bsdf type="diffuse" id="mat-pencil.001">
+		<rgb value="0.800000 0.200000 0.200000" name="reflectance"/>
+	</bsdf>
+	<bsdf type="diffuse" id="penciltest">
+		<rgb value="0.55 0.20000 0.000000" name="reflectance"/>
+	</bsdf>
+	<bsdf type="twosided" id="mat-Titanium metal">
+		<bsdf type="principled">
+			<rgb value="0.550000 0.550000 0.550000" name="base_color"/>
+			<float name="spec_tint" value="0.000000"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="1.000000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.100000"/>
+			<float name="sheen" value="0.000000"/>
+			<float name="sheen_tint" value="0.500000"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.173205"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+	<bsdf type="principled" id="mat-glass lens">
+		<rgb value="1.000000 1.000000 1.000000" name="base_color"/>
+		<float name="spec_tint" value="0.000000"/>
+		<float name="spec_trans" value="1.000000"/>
+		<float name="metallic" value="0.000000"/>
+		<float name="anisotropic" value="0.000000"/>
+		<float name="roughness" value="0.000000"/>
+		<float name="sheen" value="0.000000"/>
+		<float name="sheen_tint" value="0.500000"/>
+		<float name="clearcoat" value="0.000000"/>
+		<float name="clearcoat_gloss" value="0.173205"/>
+		<float name="eta" value="1.450000"/>
+	</bsdf>
+	<bsdf type="principled" id="mat-translucent plastic">
+		<rgb value="1.000000 1.000000 1.000000" name="base_color"/>
+		<float name="spec_tint" value="0.000000"/>
+		<float name="spec_trans" value="0.700000"/>
+		<float name="metallic" value="0.000000"/>
+		<float name="anisotropic" value="0.000000"/>
+		<float name="roughness" value="0.200000"/>
+		<float name="sheen" value="0.000000"/>
+		<float name="sheen_tint" value="0.500000"/>
+		<float name="clearcoat" value="0.000000"/>
+		<float name="clearcoat_gloss" value="0.173205"/>
+		<float name="eta" value="1.450000"/>
+	</bsdf>
+	<bsdf type="twosided" id="mat-black metal">
+		<bsdf type="principled">
+			<rgb value="0.029673 0.029673 0.029673" name="base_color"/>
+			<float name="spec_tint" value="0.000000"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="1.000000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.200000"/>
+			<float name="sheen" value="0.000000"/>
+			<float name="sheen_tint" value="0.500000"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.173205"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+	<bsdf type="twosided" id="mat-book cover">
+		<bsdf type="principled">
+			<texture type="bitmap" name="base_color">
+				<string name="filename" value="textures/livro-03-difuso.jpg"/>
+			</texture>
+			<float name="spec_tint" value="0.000000"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="0.000000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.200000"/>
+			<float name="sheen" value="0.000000"/>
+			<float name="sheen_tint" value="0.500000"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.173205"/>
+			<float name="specular" value="0.700000"/>
+		</bsdf>
+	</bsdf>
+	<bsdf type="twosided" id="mat-sheets">
+		<bsdf type="principled">
+			<texture type="bitmap" name="base_color">
+				<string name="filename" value="textures/drop-result.tmp.jpg"/>
+			</texture>
+			<float name="spec_tint" value="0.000000"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="0.000000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.650000"/>
+			<float name="sheen" value="0.000000"/>
+			<float name="sheen_tint" value="0.500000"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.173205"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+
+<!-- Emitters -->
+
+	<emitter type="constant">
+    	<rgb name="radiance" value="0.6 0.6 0.99"/>
+	</emitter>
+
+	<emitter type="point">
+		<point name="position" x="25.9752197265625" y="13.775799751281738" z="0.0"/>
+<!--		<rgb value="795.0 795.0 795.0" name="intensity"/>-->
+		<rgb value="1715.0 1715.0 1715.0" name="intensity"/>
+	</emitter>
+
+<!-- Shapes -->
+
+	<shape type="ply">
+		<string name="filename" value="meshes/Plane.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-Material.001" name="bsdf"/>
+	</shape>
+<!--	<shape type="ply">-->
+<!--		<string name="filename" value="meshes/Sphere.ply"/>-->
+<!--		<boolean name="face_normals" value="true"/>-->
+<!--		<ref id="mat-Material.003" name="bsdf"/>-->
+<!--	</shape>-->
+	<shape type="ply">
+		<string name="filename" value="meshes/Sphere_001.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-Material.003" name="bsdf"/>
+	</shape>
+
+
+<!--	fancy add. stuff: -->
+<!--	<shape type="ply">-->
+<!--		<string name="filename" value="meshes/clipb.ply"/>-->
+<!--		<ref id="mat-Metal" name="bsdf"/>-->
+<!--	</shape>-->
+<!--	<shape type="ply">-->
+<!--		<string name="filename" value="meshes/clipb_001.ply"/>-->
+<!--		<ref id="mat-Metal" name="bsdf"/>-->
+<!--	</shape>-->
+<!--		<shape type="ply">-->
+<!--		<string name="filename" value="meshes/Pencil.ply"/>-->
+<!--		<ref id="mat-pencil.001" name="bsdf"/>-->
+<!--	</shape>-->
+<!--	<shape type="ply">-->
+<!--		<string name="filename" value="meshes/Pencil_001.ply"/>-->
+<!--		<ref id="penciltest" name="bsdf"/>-->
+<!--	</shape>-->
+<!--		<shape type="ply">-->
+<!--		<string name="filename" value="meshes/VIFS06_005-Titanium metal.ply"/>-->
+<!--		<ref id="mat-Titanium metal" name="bsdf"/>-->
+<!--	</shape>-->
+<!--	<shape type="ply">-->
+<!--		<string name="filename" value="meshes/VIFS06_005-glass lens.ply"/>-->
+<!--		<ref id="mat-glass lens" name="bsdf"/>-->
+<!--	</shape>-->
+<!--	<shape type="ply">-->
+<!--		<string name="filename" value="meshes/VIFS06_005-translucent plastic.ply"/>-->
+<!--		<ref id="mat-translucent plastic" name="bsdf"/>-->
+<!--	</shape>-->
+<!--	<shape type="ply">-->
+<!--		<string name="filename" value="meshes/VIFS06_005-black metal.ply"/>-->
+<!--		<ref id="mat-black metal" name="bsdf"/>-->
+<!--	</shape>-->
+<!--	<shape type="ply">-->
+<!--		<string name="filename" value="meshes/livro-01-book cover.ply"/>-->
+<!--		<ref id="mat-book cover" name="bsdf"/>-->
+<!--	</shape>-->
+<!--	<shape type="ply">-->
+<!--		<string name="filename" value="meshes/livro-01-sheets.ply"/>-->
+<!--		<ref id="mat-sheets" name="bsdf"/>-->
+<!--	</shape>-->
+<!--	<shape type="ply">-->
+<!--		<string name="filename" value="meshes/livro-01-paper.ply"/>-->
+<!--		<ref id="mat-paper" name="bsdf"/>-->
+<!--	</shape>-->
+
+
+</scene>

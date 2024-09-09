@@ -129,16 +129,16 @@ if __name__ == '__main__':
                         'max_depth': hparams['max_depth'],
                         'reparam_max_depth': hparams['reparam_max_depth'],
                         'sigma_annealing': True,
-                        'epochs': 100,
-                        'anneal_const_first': 10,
-                        'anneal_const_last': 60,
+                        'epochs': 20,
+                        'anneal_const_first': 0,
+                        'anneal_const_last': 0,
                         'anneal_sigma_min': 0.05,
                         'TR':True,
                         'TR_bound': 0.5,
                         'TR_rate': 0.2,
                         'learning_rate':5e-2,
                         'line_search_fn': None, #'strong_wolfe',
-                        'history_size': 20,
+                        'history_size': 10,
                         'tol': 5e-6, # tolerance for newton
                         'plot_interval':1000 # number of iterations to plot
                         }
@@ -181,13 +181,13 @@ if __name__ == '__main__':
     #                  plot_intermediate=plot_intermediate)
     
     # My adam:
-    run_grad_optimization(hparams=adam_hparams,
-                     theta=initial_translation,
-                     gt_theta=gt_translation,
-                     ctx_args=ctx_args,
-                     update_fn=apply_translation,
-                     plot_initial=plot_initial,
-                     plot_interval=plot_interval)
+    # run_grad_optimization(hparams=adam_hparams,
+    #                  theta=initial_translation,
+    #                  gt_theta=gt_translation,
+    #                  ctx_args=ctx_args,
+    #                  update_fn=apply_translation,
+    #                  plot_initial=plot_initial,
+    #                  plot_interval=plot_interval)
 
     # My CG:
     # run_cg_optimization(hparams=cg_hparams,
@@ -199,10 +199,10 @@ if __name__ == '__main__':
     #                  plot_interval=plot_interval)
     
     # My BFGS
-    # run_bfgs_optimization(hparams=BFGS_box_hparams,
-    #                  theta=initial_translation,
-    #                  gt_theta=gt_translation,
-    #                  ctx_args=ctx_args,
-    #                  update_fn=apply_translation,
-    #                  plot_initial=plot_initial,
-    #                  plot_interval=plot_interval)
+    run_bfgs_optimization(hparams=BFGS_box_hparams,
+                     theta=initial_translation,
+                     gt_theta=gt_translation,
+                     ctx_args=ctx_args,
+                     update_fn=apply_translation,
+                     plot_initial=plot_initial,
+                     plot_interval=plot_interval)
