@@ -62,11 +62,11 @@ if __name__ == '__main__':
                'integrator': hparams,
                'max_depth': hparams['max_depth'],
                'reparam_max_depth': hparams['reparam_max_depth'],
-               'epochs': 200,
+               'epochs': 100,
                'learning_rate': 5e-2, # 1st order
                'sigma_annealing': True,
                'anneal_const_first': 50,
-               'anneal_const_last': 200,
+               'anneal_const_last': 0,
                'anneal_sigma_min': 0.01}
     
     cg_hparams = {'resx': hparams['resx'],
@@ -169,25 +169,25 @@ if __name__ == '__main__':
                 'sigma': hparams['sigma'], 'device': device}                                        # ours
 
     # Michael original
-    run_optimization(hparams=mi_hparams,
-                     optim=optim,
-                     theta=initial_translation,
-                     gt_theta=gt_translation,
-                     ctx_args=ctx_args,
-                     schedule_fn=run_scheduler_step,
-                     update_fn=apply_translation,
-                     plot_initial=plot_initial,
-                     plot_interval=plot_interval,
-                     plot_intermediate=plot_intermediate)
-    
-    # My adam:
-    # run_grad_optimization(hparams=adam_hparams,
+    # run_optimization(hparams=mi_hparams,
+    #                  optim=optim,
     #                  theta=initial_translation,
     #                  gt_theta=gt_translation,
     #                  ctx_args=ctx_args,
+    #                  schedule_fn=run_scheduler_step,
     #                  update_fn=apply_translation,
     #                  plot_initial=plot_initial,
-    #                  plot_interval=plot_interval)
+    #                  plot_interval=plot_interval,
+    #                  plot_intermediate=plot_intermediate)
+    
+    # My adam:
+    run_grad_optimization(hparams=adam_hparams,
+                     theta=initial_translation,
+                     gt_theta=gt_translation,
+                     ctx_args=ctx_args,
+                     update_fn=apply_translation,
+                     plot_initial=plot_initial,
+                     plot_interval=plot_interval)
 
     # My CG:
     # run_cg_optimization(hparams=cg_hparams,
