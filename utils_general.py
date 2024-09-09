@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 
 
 def update_sigma_linear(it, sigma_0, sigma_min, n=400, const_first=100):
-    return sigma_0 - (it - const_first) * (sigma_0 - sigma_min) / (n - const_first)
+    new_sig = sigma_0 - (it - const_first) * (sigma_0 - sigma_min) / (n - const_first)
+    return new_sig if new_sig > sigma_min else sigma_min
 
 
 def run_scheduler_step(curr_sigma, curr_iter, sigma_initial, sigma_min, n, const_first_n, const_last_n=None):
