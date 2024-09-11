@@ -338,7 +338,9 @@ def newton_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, 
                                     kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device)
         start_time = time.time()
         # adaptive learning rate
-        lr = start_lr*(1-i/max_iter+1e-3)
+        lr = start_lr*(1-i/max_iter+1e-1)
+        # if TR_bound == 'dynamic':
+        #     TR_bound = 2*max(sigma, 30)
         deriv = diff_func(x).T
         hessian = hess_func(x)
         if modified:
@@ -451,7 +453,7 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
                 denom = 1/sigma#d.T@hessian@d
             alpha = -(diff_func(x)@d / denom).item()
             step = alpha*d.squeeze()
-            if step.norm() > TR_bound and TR:
+            if step.norm() > TR_bound*sigma and TR:
                 step = step/step.norm()*TR_bound*sigma
                 
             x = x + step
