@@ -373,7 +373,7 @@ def mc_estimate(f_xi, p_xi, n):
 
 
 # === Section 3: Convolution ===
-def convolve(f, kernel, point, n, sampler='uniform', f_args={}, kernel_args={}, sampler_args={}, device='cpu'):
+def convolve(f, kernel, point, n, sampler='uniform', f_args={}, kernel_args={}, sampler_args={}, aggregrate=False, device='cpu'):
     """
     Convolves a function with a kernel
     The function f should take in a tensor of shape (n, m) and return a tensor of shape (n,)
@@ -417,6 +417,8 @@ def convolve(f, kernel, point, n, sampler='uniform', f_args={}, kernel_args={}, 
     else:
         f_values = f_out
     dir = sampler_args.get('dir', None)
+    if aggregrate:
+        dir=None
     weights = kernel(x=tau, device=device, dir=dir, **kernel_args)
     
     # weights can be (n, ...), generating (...) of convolutions

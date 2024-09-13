@@ -5,9 +5,21 @@ import matplotlib.pyplot as plt
 from convolutions import *
 import functools
 import time
+import numpy as np
 
+def aggregate_dist(n, m):
+    '''
+    For n number of samples, m dimension
+    '''
+    base_n = n//m
+    remainder = n%m
+    slots = [base_n]*m
+    extra_ind = np.random.choice(m, remainder, replace=False)
+    for i in extra_ind:
+        slots[i] += 1
+    return slots
 
-def smoothFn_gradient(func, sampler, n, f_args, kernel_args, sampler_args, device='cuda'):
+def smoothFn_gradient(func, sampler, n, f_args, kernel_args, sampler_args, aggregate=False, device='cuda'):
     '''
     Get the gradient of the convolved function,
     n is number of samples
@@ -24,7 +36,31 @@ def smoothFn_gradient(func, sampler, n, f_args, kernel_args, sampler_args, devic
             result[:, i] = convolve(func, gauss_grad, input, n=n, sampler=sampler, 
                             f_args=f_args, kernel_args=kernel_args, sampler_args=sampler_args, device=device)
         return result
-    
+    def grad_aggregate(input):
+        '''
+        input should be tensor of shape (1, m)
+        '''
+        dims = input.shape[1]
+        result = torch.zeros(1, dims, device=device)
+        aggregate_dims = torch.zeros(1, dims, device=device)
+        zero_idx = []
+        samples = aggregate_dist(n, dims)
+        for i in range(dims):
+            n_samples = samples[i]
+            if n_samples == 0:
+                zero_idx.append(i)
+                continue
+            sampler_args['dir'] = i
+            conv_res = convolve(func, gauss_grad, input, n=n_samples, sampler=sampler, 
+                            f_args=f_args, kernel_args=kernel_args, sampler_args=sampler_args, aggregrate=aggregate, device=device)
+            aggregate_dims = aggregate_dims + conv_res
+            result[:, i] = conv_res[i]
+        aggregate_dims = aggregate_dims/dims
+        print(result[:, zero_idx].shape, aggregate_dims[:, zero_idx].shape)
+        result[:, zero_idx] = aggregate_dims[zero_idx]
+        return result
+    if aggregate:
+        return grad_aggregate
     return grad
 
 def smoothFn_gradient_mi(func, n, f_args, kernel_args, sampler_args, device='cuda'):
@@ -40,7 +76,7 @@ def smoothFn_gradient_mi(func, n, f_args, kernel_args, sampler_args, device='cud
         return result.view(1, -1)
     return grad
 
-def smoothFn_hv_fd(func, n, f_args, kernel_args, sampler_args, epsilon=1e-4, device='cpu'):
+def smoothFn_hv_fd(func, n, f_args, kernel_args, sampler_args, epsilon=1e-4, aggregate=False, device='cpu'):
 
     '''
     Uses importance grad gauss sampler
@@ -54,7 +90,7 @@ def smoothFn_hv_fd(func, n, f_args, kernel_args, sampler_args, epsilon=1e-4, dev
         '''
         v_norm = v.norm()
         unit_vec = v.view(1, -1)/v_norm
-        grad = smoothFn_gradient(func, 'importance_gradgauss', n, f_args, kernel_args, sampler_args, device=device)
+        grad = smoothFn_gradient(func, 'importance_gradgauss', n, f_args, kernel_args, sampler_args, aggregate=aggregate, device=device)
         unit_Hv = (grad(input + epsilon*unit_vec) - grad(input-epsilon*unit_vec))/2/epsilon
         return v_norm*unit_Hv
     return HV
@@ -404,13 +440,15 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
     TR_bound = opt_args.get('TR_bound', 'dynamic') # fixed value or dynamic
     Using_HVP = opt_args.get('HVP', True) # use faster HVP instead
     sigma = self_kernel_args['sigma']
+    
+    aggregate = False
     print('Starting NCG with sigma: {:2f}, TR: {}, TR_bound: {}, HVP: {}'.format(sigma, TR, TR_bound, Using_HVP))
     diff_func = smoothFn_gradient(func=f, sampler='importance_gradgauss', n=n_samples, f_args=f_args,
-                            kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device) 
+                            kernel_args=self_kernel_args, sampler_args=self_sampler_args, aggregate=aggregate, device=device) 
     
     hess_func = smoothFn_hessian(func=f, sampler='importance_hessgauss', n=n_samples, f_args=f_args,
                                 kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device)
-    hvp_func = smoothFn_hv_fd(func=f, n=n_samples, f_args=f_args, kernel_args=self_kernel_args, sampler_args=self_sampler_args, epsilon=sigma/3, device=device)
+    hvp_func = smoothFn_hv_fd(func=f, n=n_samples, f_args=f_args, kernel_args=self_kernel_args, sampler_args=self_sampler_args, epsilon=sigma/3, aggregate=aggregate, device=device)
     img_errors, param_errors, iter_times = [], [], []
     x = x0.unsqueeze(0)
     k = 0
@@ -430,11 +468,11 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
         if TR_bound == 'dynamic':
             TR_bound = 2*max(sigma, 5)
         diff_func = smoothFn_gradient(func=f, sampler='importance_gradgauss', n=n_samples, f_args=f_args,
-                                kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device) 
+                                kernel_args=self_kernel_args, sampler_args=self_sampler_args, aggregate=aggregate, device=device) 
 
         hess_func = smoothFn_hessian(func=f, sampler='importance_hessgauss', n=n_samples, f_args=f_args,
                                     kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device)
-        hvp_func = smoothFn_hv_fd(func=f, n=n_samples, f_args=f_args, kernel_args=self_kernel_args, sampler_args=self_sampler_args, epsilon=sigma/3, device=device)
+        hvp_func = smoothFn_hv_fd(func=f, n=n_samples, f_args=f_args, kernel_args=self_kernel_args, sampler_args=self_sampler_args, epsilon=sigma/3, aggregate=aggregate, device=device)
         delta_d = d.T@d
         
         for j in range(NR_max_iter): # newton-ralphson iterative approximation
@@ -486,7 +524,7 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
                 if diff_func_check(x).norm() < tol:
                     num_iter = i+1
                     print("Converged at ", i+1)
-                    img_errors, param_errors = log_func(x, img_errors, param_errors, i=i, interval=1)
+                    # img_errors, param_errors = log_func(x, img_errors, param_errors, i=i, interval=1)
                     break
                 else:
                     convergence = 0

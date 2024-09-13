@@ -10,7 +10,7 @@ sys.path.append(code_path)
 # print(code_path)
 from utils_general import show_with_error, plt_errors
 from utils_mitsuba import get_mts_rendering, render_smooth
-from optimizations import adam_opt, NCG_smooth, BFGS_opt
+from optimizations import adam_opt, NCG_smooth, BFGS_opt, mi_opt
 
 def run_optimization(hparams,
                      optim,
@@ -142,7 +142,7 @@ def run_grad_optimization(hparams,
         show_with_error(initial_image, reference_image, 0)
     print(f"Running {hparams['epochs']} epochs with {hparams['nsamples']} samples and sigma={hparams['sigma']}")
     start = time.time()
-    x_adam, img_errors, param_errors = adam_opt(render_smooth, theta, adam_box_params['epochs'], log_func=logging_func, f_args=f_args, kernel_args=kernel_args,
+    x_adam, img_errors, param_errors, iter_times = mi_opt(render_smooth, theta, adam_box_params['epochs'], log_func=logging_func, f_args=f_args, kernel_args=kernel_args,
                                                 sampler_args=sampler_args, opt_args=adam_box_params, ctx_args=n_args, device=device)
     end = time.time() - start
 
@@ -151,7 +151,7 @@ def run_grad_optimization(hparams,
     show_with_error(img_curr, ctx_args['gt_image'], hparams['epochs'])
     print(f"Done. Time: {end:.4f}")
     print("Done.")
-
+    return img_errors, param_errors, iter_times
 
 
 def run_cg_optimization(hparams,
@@ -178,7 +178,7 @@ def run_cg_optimization(hparams,
            'anneal_sigma_min':hparams['anneal_sigma_min'],
            'epochs': hparams['epochs'],
            'conv_thres': 5, # convergence threshold
-           'tol': 5e-5, # tolerance for CG
+           'tol': hparams['tol'], # tolerance for CG
            'TR':hparams['TR'], # trust region
            'TR_bound': hparams['TR_bound'], # number or 'dynamic'
            'HVP':hparams['HVP'], # using HVP or full hessian
@@ -214,15 +214,16 @@ def run_cg_optimization(hparams,
         show_with_error(initial_image, reference_image, 0)
     print(f"Running {hparams['epochs']} epochs with {hparams['nsamples']} samples and sigma={hparams['sigma']}")
     start = time.time()
-    x_cg, img_errors, param_errors = NCG_smooth(render_smooth, theta, cg_box_hparams['epochs'], log_func=logging_func, f_args=f_args, kernel_args=kernel_args,
+    x_cg, img_errors, param_errors, iter_times = NCG_smooth(render_smooth, theta, cg_box_hparams['epochs'], log_func=logging_func, f_args=f_args, kernel_args=kernel_args,
                                                 sampler_args=sampler_args, opt_args=cg_box_hparams, ctx_args=n_args, device=device)
     end = time.time() - start
 
-    img_curr = get_mts_rendering(x_cg.squeeze(), update_fn, ctx_args)
-    plt_errors(img_errors, param_errors, title=f'Final, after {hparams["epochs"]} iterations')
-    show_with_error(img_curr, ctx_args['gt_image'], hparams['epochs'])
-    print(f"Done. Time: {end:.4f}")
-    print("Done.")
+    # img_curr = get_mts_rendering(x_cg.squeeze(), update_fn, ctx_args)
+    # plt_errors(img_errors, param_errors, title=f'Final, after {hparams["epochs"]} iterations')
+    # show_with_error(img_curr, ctx_args['gt_image'], hparams['epochs'])
+    # print(f"Done. Time: {end:.4f}")
+    # print("Done.")
+    return img_errors, param_errors, iter_times
     
     
     
