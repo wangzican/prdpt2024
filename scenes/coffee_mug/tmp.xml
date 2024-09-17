@@ -1,0 +1,99 @@
+<scene version="2.1.0">
+
+<!-- Defaults, these can be set via the command line: -Darg=value -->
+
+	<default name="spp" value="4096"/>
+	<default name="resx" value="256"/>
+	<default name="resy" value="192"/>
+
+<!-- Camera and Rendering Parameters -->
+
+	<integrator type="path">
+		<integer name="max_depth" value="6"/>
+	</integrator>
+	<sensor type="perspective">
+		<string name="fov_axis" value="x"/>
+		<float name="fov" value="39.597755"/>
+		<float name="principal_point_offset_x" value="0.000000"/>
+		<float name="principal_point_offset_y" value="-0.000000"/>
+		<float name="near_clip" value="0.100000"/>
+		<float name="far_clip" value="100.000000"/>
+		<transform name="to_world">
+			<rotate x="1" angle="-172.0000093397955"/>
+			<rotate y="1" angle="-79.99999767274336"/>
+			<rotate z="1" angle="-179.999991348578"/>
+			<translate value="0.275070 0.084647 0.060803"/>
+		</transform>
+		<sampler type="independent">
+			<integer name="sample_count" value="$spp"/>
+		</sampler>
+		<film type="hdrfilm">
+			<integer name="width" value="$resx"/>
+			<integer name="height" value="$resy"/>
+			<boolean name="sample_border" value="true"/>
+		</film>
+	</sensor>
+
+<!-- Materials -->
+
+	<bsdf type="twosided" id="mat-Backdrop">
+		<bsdf type="principled">
+			<rgb value="0.625968 0.625968 0.625968" name="base_color"/>
+			<float name="spec_tint" value="0.000000"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="0.500000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.500000"/>
+			<float name="sheen" value="0.000000"/>
+			<float name="sheen_tint" value="0.500000"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.173205"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+
+	<bsdf type="twosided" id="mat-Mug">
+		<bsdf type="diffuse">
+			<rgb value="0.608000 0.608000 0.608000" name="reflectance"/>
+		</bsdf>
+	</bsdf>
+<!--	<bsdf type="plastic" id="mat-Mug">-->
+<!--		<texture name="diffuse_reflectance" type="bitmap">-->
+<!--			<string name="filename" value="textures/cvpr_texture.png" />-->
+<!--			<string name="filter_type" value="bilinear" />-->
+<!--		</texture>-->
+<!--		<rgb name="specular_reflectance" value="0.0, 0.0, 0.0"/>-->
+<!--	</bsdf>-->
+
+<!-- Emitters -->
+	<shape type="sphere">
+		<point name="center" x="-0.015393882989883423" y="0.7226478457450867" z="-0.2151443213224411"/>
+		<float name="radius" value="0.1"/>
+		<bsdf type="diffuse"/>
+		<emitter type="area">
+			<rgb value="15.91549 15.91549 15.91549" name="radiance"/>
+		</emitter>
+	</shape>
+
+	<shape type="rectangle">
+		<boolean name="flip_normals" value="true"/>
+		<transform name="to_world">
+			<matrix value="0.056693 0.000000 0.221802 -0.028197 0.000000 0.311151 -0.000000 0.250621 -0.026349 0.000000 0.477230 0.272821 0.000000 0.000000 0.000000 1.000000"/>
+		</transform>
+		<emitter type="area">
+			<rgb value="8.0, 8.0, 8.0" name="radiance"/>
+		</emitter>
+		<bsdf type="null"/>
+	</shape>
+
+<!-- Shapes -->
+
+	<shape type="ply">
+		<string name="filename" value="meshes/backdrop.ply"/>
+		<ref id="mat-Backdrop" name="bsdf"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/Mug.ply"/>
+		<ref id="mat-Mug" name="bsdf"/>
+	</shape>
+</scene>

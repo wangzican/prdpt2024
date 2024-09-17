@@ -11,6 +11,13 @@ def get_mts_rendering(theta, update_fn, ctx_args):
     rendering = mi.render(ctx_args['scene'], ctx_args['params'], seed=0, spp=ctx_args['spp'])
     return torch.tensor(rendering, dtype=torch.float32, device=ctx_args['device'])
 
+def get_mts_rendering_mts(theta, update_fn, ctx_args):
+    # returns a rendering with the current parameters.
+    # update_fn is a function pointer to the function that updates the scene parameters, e.g., apply_translation
+    update_fn(theta, p=ctx_args['params'], init_vpos=ctx_args['init_vpos'], mat_id=ctx_args['mat_id'])
+    rendering = mi.render(ctx_args['scene'], ctx_args['params'], seed=0, spp=ctx_args['spp'])
+    return rendering
+
 
 def render_smooth(perturbed_theta, update_fn, ctx_args):
     # render with each perturbed position, get the final image, compute loss, batch, return

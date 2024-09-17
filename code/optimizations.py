@@ -56,8 +56,8 @@ def smoothFn_gradient(func, sampler, n, f_args, kernel_args, sampler_args, aggre
             aggregate_dims = aggregate_dims + conv_res
             result[:, i] = conv_res[i]
         aggregate_dims = aggregate_dims/dims
-        print(result[:, zero_idx].shape, aggregate_dims[:, zero_idx].shape)
-        result[:, zero_idx] = aggregate_dims[zero_idx]
+        # print(result[:, zero_idx].shape, aggregate_dims[:, zero_idx].shape)
+        result[:, zero_idx] = aggregate_dims[:, zero_idx]
         return result
     if aggregate:
         return grad_aggregate
@@ -91,6 +91,27 @@ def smoothFn_hv_fd(func, n, f_args, kernel_args, sampler_args, epsilon=1e-4, agg
         v_norm = v.norm()
         unit_vec = v.view(1, -1)/v_norm
         grad = smoothFn_gradient(func, 'importance_gradgauss', n, f_args, kernel_args, sampler_args, aggregate=aggregate, device=device)
+        unit_Hv = (grad(input + epsilon*unit_vec) - grad(input-epsilon*unit_vec))/2/epsilon
+        return v_norm*unit_Hv
+    return HV
+
+def smoothFn_hv_fd_uniform(func, n, f_args, kernel_args, sampler_args, epsilon=1e-4, aggregate=False, device='cpu'):
+
+    '''
+    Uses uniform sampler
+    return a function that does HV product using finite difference from gradient
+    '''
+    def HV(input, v):
+        '''
+        input should be tensor of shape (1, m)
+        v should be tensor of shape (1, m)
+        returns tensor of shape (1, m)
+        '''
+        v_norm = v.norm()
+        unit_vec = v.view(1, -1)/v_norm
+        def grad(input):
+            result = convolve(func, gauss_grad, input, n=n, sampler='uniform', f_args=f_args, kernel_args=kernel_args, sampler_args=sampler_args, device=device)
+            return result
         unit_Hv = (grad(input + epsilon*unit_vec) - grad(input-epsilon*unit_vec))/2/epsilon
         return v_norm*unit_Hv
     return HV
@@ -268,7 +289,7 @@ def adam_opt(func, x0, max_iter, log_func, f_args, kernel_args, sampler_args, op
         iter_time = time.time() - start_time
         iter_times.append(iter_time)
         img_errors, param_errors = log_func(x0.unsqueeze(0), img_errors, param_errors, i, interval=opt_args['plot_interval'], iter_time=iter_time)
-        if torch.norm(diff_func(x0.unsqueeze(0))) < opt_args['tol']:
+        if torch.norm(x0.grad) < opt_args['tol']:
             if converged:
                 convergence += 1
             else:
@@ -314,7 +335,7 @@ def mi_opt(func, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt_
         iter_time = time.time() - start_time
         iter_times.append(iter_time)
         img_errors, param_errors = log_func(x0.unsqueeze(0), img_errors, param_errors, i, interval=opt_args['plot_interval'], iter_time=iter_time)
-        if torch.norm(diff_func(x0.unsqueeze(0))) < opt_args['tol']:
+        if torch.norm(x0.grad) < opt_args['tol']:
             if converged:
                 convergence += 1
             else:
@@ -491,8 +512,12 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
                 denom = 1/sigma#d.T@hessian@d
             alpha = -(diff_func(x)@d / denom).item()
             step = alpha*d.squeeze()
-            if step.norm() > TR_bound*sigma and TR:
-                step = step/step.norm()*TR_bound*sigma
+            # if Using_HVP:
+            #     if step.norm() > TR_bound*sigma and TR:
+            #         step = step/step.norm()*TR_bound*sigma
+            # else:
+            if step.norm() > TR_bound and TR:
+                step = step/step.norm()*TR_bound
                 
             x = x + step
             if alpha**2 * delta_d <= NR_tol:
