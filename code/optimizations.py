@@ -19,6 +19,23 @@ def aggregate_dist(n, m):
         slots[i] += 1
     return slots
 
+def aggregate_dist_hess(n, m):
+    '''
+    For aggregate hessian, thus m^2 dimension
+    '''
+    base_n = n//m^2
+    remainder = n%(m^2)
+    matrix = np.full((m, m), base_n)  # Initialize matrix with base_n
+
+    # Distribute the remainder samples randomly across the m x m matrix
+    extra_ind = np.random.choice(m * m, remainder, replace=False)
+    for ind in extra_ind:
+        row = ind // m
+        col = ind % m
+        matrix[row, col] += 1
+
+    return matrix
+
 def smoothFn_gradient(func, sampler, n, f_args, kernel_args, sampler_args, aggregate=False, device='cuda'):
     '''
     Get the gradient of the convolved function,
@@ -116,7 +133,7 @@ def smoothFn_hv_fd_uniform(func, n, f_args, kernel_args, sampler_args, epsilon=1
         return v_norm*unit_Hv
     return HV
 
-def smoothFn_hessian(func, sampler, n, f_args, kernel_args, sampler_args, device='cuda'):
+def smoothFn_hessian(func, sampler, n, f_args, kernel_args, sampler_args, aggregate=False, device='cuda'):
     '''
     Get the hessian of the convolved function,
     n is number of samples
@@ -135,7 +152,16 @@ def smoothFn_hessian(func, sampler, n, f_args, kernel_args, sampler_args, device
                 result[i, j] = result[j, i] = convolve(func, gauss_hessian, input, n=n, sampler=sampler, 
                                 f_args=f_args, kernel_args=kernel_args, sampler_args=sampler_args, device=device)
         return result
-    
+    def hess_aggregate(input):
+        dims = input.shape[1]
+        result = torch.zeros(dims, dims, device=device)
+        for i in range(n):
+            result += convolve(func, gauss_hessian, input, n=1, sampler=sampler, f_args=f_args, 
+                               kernel_args=kernel_args, sampler_args=sampler_args, aggregrate=aggregate, device=device)
+        result = result/n
+        return result
+    if aggregate:
+        return hess_aggregate
     return hess
 
 def smoothFn_hessian_diag(func, sampler, n, f_args, kernel_args, sampler_args, device='cuda'):
@@ -511,6 +537,7 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
                 modified = True
                 denom = 1/sigma#d.T@hessian@d
             alpha = -(diff_func(x)@d / denom).item()
+            
             step = alpha*d.squeeze()
             # if Using_HVP:
             #     if step.norm() > TR_bound*sigma and TR:

@@ -75,3 +75,62 @@ def setup_shadowscene(hparams):
     initial_vertex_positions = dr.unravel(mi.Point3f, params[mat_id])
     return scene, params, mat_id, initial_vertex_positions
 
+def setup_rabbitscene(hparams):
+    from mitsuba.scalar_rgb import Transform4f as T # type: ignore
+    mi.set_variant('cuda_ad_rgb')
+    integrator = {
+        'type': hparams['integrator'],
+    }
+    scene = mi.load_dict({
+        'type': 'scene',
+        'integrator': integrator,
+        'sensor':  {
+            'type': 'perspective',
+            'to_world': T.look_at(
+                            origin=(0, 0, 2),
+                            target=(0, 0, 0),
+                            up=(0, 1, 0)
+                        ),
+            'fov': 60,
+            'film': {
+                'type': 'hdrfilm',
+                'width': 64,
+                'height': 64,
+                'rfilter': { 'type': 'gaussian' },
+                'sample_border': True
+            },
+        },
+        'wall': {
+            'type': 'obj',
+            'filename': './scenes/rabbit/meshes/rectangle.obj',
+            'to_world': T.translate([0, 0, -2]).scale(2.0),
+            'face_normals': True,
+            'bsdf': {
+                'type': 'diffuse',
+                'reflectance': { 'type': 'rgb', 'value': (0.5, 0.5, 0.5) },
+            }
+        },
+        'bunny': {
+            'type': 'ply',
+            'filename': './scenes/rabbit/meshes/bunny.ply',
+            'to_world': T.scale(6.5),
+            'bsdf': {
+                'type': 'diffuse',
+                'reflectance': { 'type': 'rgb', 'value': (0.3, 0.3, 0.75) },
+            },
+        },
+        'light': {
+            'type': 'obj',
+            'filename': './scenes/rabbit/meshes/sphere.obj',
+            'emitter': {
+                'type': 'area',
+                'radiance': {'type': 'rgb', 'value': [1e3, 1e3, 1e3]}
+            },
+            'to_world': T.translate([2.5, 2.5, 7.0]).scale(0.25)
+        }
+    })
+    
+    params = mi.traverse(scene)
+    mat_id = 'bunny.vertex_positions'
+    initial_vertex_positions = dr.unravel(mi.Point3f, params[mat_id])
+    return scene, params, mat_id, initial_vertex_positions

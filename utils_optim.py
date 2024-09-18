@@ -142,7 +142,7 @@ def run_grad_optimization(hparams,
         show_with_error(initial_image, reference_image, 0)
     print(f"Running {hparams['epochs']} epochs with {hparams['nsamples']} samples and sigma={hparams['sigma']}")
     start = time.time()
-    x_adam, img_errors, param_errors, iter_times = adam_opt(render_smooth, theta, adam_box_params['epochs'], log_func=logging_func, f_args=f_args, kernel_args=kernel_args,
+    x_adam, img_errors, param_errors, iter_times = mi_opt(render_smooth, theta, adam_box_params['epochs'], log_func=logging_func, f_args=f_args, kernel_args=kernel_args,
                                                 sampler_args=sampler_args, opt_args=adam_box_params, ctx_args=n_args, device=device)
     end = time.time() - start
 
@@ -161,7 +161,7 @@ def run_cg_optimization(hparams,
                      update_fn,
                      plot_initial,
                      plot_interval,
-                     print_param=False):
+                     print_param=True):
     sigma = hparams['sigma']
 
     reference_image = get_mts_rendering(gt_theta, update_fn, ctx_args)

@@ -268,7 +268,7 @@ if __name__ == '__main__':
     # for i in range(n_starting_points):
     #     initial_translation = initial_translations[i].clone().detach().requires_grad_(True)
     #     optim = torch.optim.Adam([initial_translation], lr=mi_hparams['learning_rate'])
-    #     run_optimization(hparams=mi_hparams.clone(),
+        # run_optimization(hparams=mi_hparams.clone(),
     #                     optim=optim,
     #                     theta=initial_translation,
     #                     gt_theta=gt_translation,
