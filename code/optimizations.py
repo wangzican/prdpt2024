@@ -76,6 +76,7 @@ def smoothFn_gradient(func, sampler, n, f_args, kernel_args, sampler_args, aggre
         # print(result[:, zero_idx].shape, aggregate_dims[:, zero_idx].shape)
         result[:, zero_idx] = aggregate_dims[:, zero_idx]
         return result
+    # grad_aggregate = smoothFn_gradient_mi(func, n, f_args, kernel_args, sampler_args, device=device)
     if aggregate:
         return grad_aggregate
     return grad
@@ -488,7 +489,7 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
     Using_HVP = opt_args.get('HVP', True) # use faster HVP instead
     sigma = self_kernel_args['sigma']
     
-    aggregate = False
+    aggregate = opt_args.get('aggregate', False)
     print('Starting NCG with sigma: {:2f}, TR: {}, TR_bound: {}, HVP: {}'.format(sigma, TR, TR_bound, Using_HVP))
     diff_func = smoothFn_gradient(func=f, sampler='importance_gradgauss', n=n_samples, f_args=f_args,
                             kernel_args=self_kernel_args, sampler_args=self_sampler_args, aggregate=aggregate, device=device) 
@@ -539,12 +540,12 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
             alpha = -(diff_func(x)@d / denom).item()
             
             step = alpha*d.squeeze()
-            # if Using_HVP:
-            #     if step.norm() > TR_bound*sigma and TR:
-            #         step = step/step.norm()*TR_bound*sigma
-            # else:
-            if step.norm() > TR_bound and TR:
-                step = step/step.norm()*TR_bound
+            if Using_HVP:
+                if step.norm() > TR_bound*sigma and TR:
+                    step = step/step.norm()*TR_bound*sigma
+            else:
+                if step.norm() > TR_bound and TR:
+                    step = step/step.norm()*TR_bound
                 
             x = x + step
             if alpha**2 * delta_d <= NR_tol:

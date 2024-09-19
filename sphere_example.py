@@ -206,61 +206,61 @@ if __name__ == '__main__':
     
     # Mitsuba
     
-    dr.enable_grad(params) 
-    mi.set_variant('cuda_ad_rgb')
-    def mse(image):
-        loss = dr.sum(dr.sqr(image - reference_image))
-        return loss 
-    def update_fn_mitsuba():
-        trans = mi.Transform4f.translate(mitsuba_opt['translation'])
-        params[mat_id] = dr.ravel(trans @ initial_vertex_positions)
-        params.update()
+    # dr.enable_grad(params) 
+    # mi.set_variant('cuda_ad_rgb')
+    # def mse(image):
+    #     loss = dr.sum(dr.sqr(image - reference_image))
+    #     return loss 
+    # def update_fn_mitsuba():
+    #     trans = mi.Transform4f.translate(mitsuba_opt['translation'])
+    #     params[mat_id] = dr.ravel(trans @ initial_vertex_positions)
+    #     params.update()
         
-    mat_id = 'PLYMesh_1.vertex_positions'
-    reference_image = get_mts_rendering_mts(gt_translation, update_fn, ctx_args)
-    torch_reference_image = torch.tensor(reference_image, dtype=torch.float32, device=device)
+    # mat_id = 'PLYMesh_1.vertex_positions'
+    # reference_image = get_mts_rendering_mts(gt_translation, update_fn, ctx_args)
+    # torch_reference_image = torch.tensor(reference_image, dtype=torch.float32, device=device)
     
-    i = 0
-    print(f'initial translation: {initial_translations[i,0]}, {initial_translations[i,1]}')
-    print(f'gt translation: {gt_translation[0]}, {gt_translation[1]}')
-    start = mi.Vector3f(0, float(initial_translations[i, 0]), float(initial_translations[i, 1]))
-    gt = mi.Vector3f(0, float(gt_translation[0]), float(gt_translation[1]))
+    # i = 0
+    # print(f'initial translation: {initial_translations[i,0]}, {initial_translations[i,1]}')
+    # print(f'gt translation: {gt_translation[0]}, {gt_translation[1]}')
+    # start = mi.Vector3f(0, float(initial_translations[i, 0]), float(initial_translations[i, 1]))
+    # gt = mi.Vector3f(0, float(gt_translation[0]), float(gt_translation[1]))
     
-    mitsuba_opt = mi.ad.Adam(lr=0.05)
-    mitsuba_opt['translation'] = start
+    # mitsuba_opt = mi.ad.Adam(lr=0.05)
+    # mitsuba_opt['translation'] = start
     
-    # update params
-    update_fn_mitsuba()
-    rendering = mi.render(ctx_args['scene'], params, seed=0, spp=ctx_args['spp'])
-    img_loss = mse(rendering)
-    param_loss = dr.mean(dr.sqr(mitsuba_opt['translation'] - gt))
-    print(f"img_Loss at start: {img_loss[0]}")
-    print(f'param_loss at start: {param_loss[0]}')
-    torch_rendering = torch.tensor(rendering, dtype=torch.float32, device=device)
-    show_with_error(torch_rendering, torch_reference_image, 0)
+    # # update params
+    # update_fn_mitsuba()
+    # rendering = mi.render(ctx_args['scene'], params, seed=0, spp=ctx_args['spp'])
+    # img_loss = mse(rendering)
+    # param_loss = dr.mean(dr.sqr(mitsuba_opt['translation'] - gt))
+    # print(f"img_Loss at start: {img_loss[0]}")
+    # print(f'param_loss at start: {param_loss[0]}')
+    # torch_rendering = torch.tensor(rendering, dtype=torch.float32, device=device)
+    # show_with_error(torch_rendering, torch_reference_image, 0)
     
-    max_iter = 100
-    start_time = time.time()
-    for it in range(max_iter):
-        print(f'iter {it}')
+    # max_iter = 100
+    # start_time = time.time()
+    # for it in range(max_iter):
+    #     print(f'iter {it}')
         
-        rendering = mi.render(ctx_args['scene'], params, seed=0, spp=ctx_args['spp'])
-        if (it+1) % 100 == 0:
-            torch_rendering = torch.tensor(rendering, dtype=torch.float32, device=device)
-            show_with_error(torch_rendering, torch_reference_image, it)
-        img_loss = mse(rendering)
-        param_loss = dr.mean(dr.sqr(mitsuba_opt['translation'] - gt))
-        dr.backward(img_loss)
-        mitsuba_opt.step()
-        update_fn_mitsuba()
-        print(f"img_Loss at iter {it}: {img_loss[0]}")
-        print(f'param_loss at iter {it}: {param_loss[0]}')
-        mitsuba_opt.step()
-        if img_loss[0] < 0.000005:
-            print(f'converged at iter {it}')
-            break
-    end_time = time.time()
-    print(f'time: {end_time - start_time}')
+    #     rendering = mi.render(ctx_args['scene'], params, seed=0, spp=ctx_args['spp'])
+    #     if (it+1) % 100 == 0:
+    #         torch_rendering = torch.tensor(rendering, dtype=torch.float32, device=device)
+    #         show_with_error(torch_rendering, torch_reference_image, it)
+    #     img_loss = mse(rendering)
+    #     param_loss = dr.mean(dr.sqr(mitsuba_opt['translation'] - gt))
+    #     dr.backward(img_loss)
+    #     mitsuba_opt.step()
+    #     update_fn_mitsuba()
+    #     print(f"img_Loss at iter {it}: {img_loss[0]}")
+    #     print(f'param_loss at iter {it}: {param_loss[0]}')
+    #     mitsuba_opt.step()
+    #     if img_loss[0] < 0.000005:
+    #         print(f'converged at iter {it}')
+    #         break
+    # end_time = time.time()
+    # print(f'time: {end_time - start_time}')
     
     
     # Michael original
@@ -330,27 +330,52 @@ if __name__ == '__main__':
     # np.save(f'./code/results/shadow/shadow_adam/shadow_adam_times_{i}.npy', iter_times)
 
     # My CG:
-    # i = 10
-    
-    # initial_translation = initial_translations[i].clone()
-    # func_loss, param_loss, iter_times = run_cg_optimization(hparams=cg_hparams2.copy(),
-    #                                                         theta=initial_translation.clone(),
-    #                                                         gt_theta=gt_translation,
-    #                                                         ctx_args=ctx_args.copy(),
-    #                                                         update_fn=apply_translation,
-    #                                                         plot_initial=plot_initial,
-    #                                                         plot_interval=plot_interval)
-    # length = len(func_loss)
-    # for j, loss_i in enumerate(func_loss):
-    #     if loss_i < 0.000008:
-    #         idx = j#min(j+6, length-1)
-    #         func_loss = func_loss[:idx+1]
-    #         param_loss = param_loss[:idx+1]
-    #         iter_times = iter_times[:idx]
-    # iter_times = np.insert(iter_times, 0, 0)
-    # np.save(f'./code/results/shadow/shadow_cg/shadow_cg_f_loss_{i}.npy', func_loss)
-    # np.save(f'./code/results/shadow/shadow_cg/shadow_cg_param_loss_{i}.npy', param_loss)
-    # np.save(f'./code/results/shadow/shadow_cg/shadow_cg_times_{i}.npy', iter_times)
+    cg_hparams_HVP_agg = {'resx': hparams['resx'],
+                    'resy': hparams['resy'],
+                    'nsamples': hparams['nsamples'],
+                    'sigma': hparams['sigma'],
+                    'render_spp': hparams['render_spp'],
+                    'initial_translation': hparams['initial_translation'],
+                    'gt_translation': hparams['gt_translation'],
+                    'integrator': hparams,
+                    'max_depth': hparams['max_depth'],
+                    'reparam_max_depth': hparams['reparam_max_depth'],
+                    'sigma_annealing': True,
+                    'anneal_const_first': 0,
+                    'anneal_const_last': 10,
+                    'anneal_sigma_min': 5e-2,
+                    'epochs': 30,
+                    'conv_thres': 4, # convergence threshold
+                    'tol': 1e-4, # tolerance for CG
+                    'TR':True,
+                    'TR_bound': 4, # number or 'dynamic'
+                    'HVP':True, # using HVP or full hessian
+                    'aggregate': True,
+                    'NR_max_iter': 1, # max iter for NR line search in CG
+                    'NR_tol': 1e-3, # tolerance for NR line search in CG
+                    'recompute': 5, # recompute the exact residual every n iterations
+                    }    
+    i = 3
+    torch.manual_seed(0)
+    initial_translation = initial_translations[i].clone()
+    func_loss, param_loss, iter_times = run_cg_optimization(hparams=cg_hparams_HVP_agg.copy(),
+                                                            theta=initial_translation.clone(),
+                                                            gt_theta=gt_translation,
+                                                            ctx_args=ctx_args.copy(),
+                                                            update_fn=apply_translation,
+                                                            plot_initial=plot_initial,
+                                                            plot_interval=plot_interval)
+    length = len(func_loss)
+    for j, loss_i in enumerate(func_loss):
+        if loss_i < 0.000008:
+            idx = j#min(j+6, length-1)
+            func_loss = func_loss[:idx+1]
+            param_loss = param_loss[:idx+1]
+            iter_times = iter_times[:idx]
+    iter_times = np.insert(iter_times, 0, 0)
+    np.save(f'./code/results/shadow/shadow_cg_HVP_agg/shadow_cg_HVP_agg_f_loss_{i}.npy', func_loss)
+    np.save(f'./code/results/shadow/shadow_cg_HVP_agg/shadow_cg_HVP_agg_param_loss_{i}.npy', param_loss)
+    np.save(f'./code/results/shadow/shadow_cg_HVP_agg/shadow_cg_HVP_agg_times_{i}.npy', iter_times)
     # My BFGS
     # run_bfgs_optimization(hparams=BFGS_box_hparams,
     #                  theta=initial_translation,

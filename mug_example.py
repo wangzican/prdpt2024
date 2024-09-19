@@ -128,7 +128,7 @@ if __name__ == '__main__':
                     'reparam_max_depth': hparams['reparam_max_depth'],
                     'sigma_annealing': True,
                     'anneal_const_first': 0,
-                    'anneal_const_last': 15,
+                    'anneal_const_last': 10,
                     'anneal_sigma_min': 0.01,
                     'epochs': 30,
                     'conv_thres': 55, # convergence threshold
@@ -140,7 +140,31 @@ if __name__ == '__main__':
                     'NR_tol': 1e-3, # tolerance for NR line search in CG
                     'recompute': 2, # recompute the exact residual every n iterations
                     }
-    
+    cg_hparams_HVP_agg = {'resx': hparams['resx'],
+                    'resy': hparams['resy'],
+                    'nsamples': hparams['nsamples'],
+                    'sigma': 3,#hparams['sigma'],
+                    'render_spp': hparams['render_spp'],
+                    'initial_translation': hparams['initial_translation'],
+                    'gt_translation': hparams['gt_translation'],
+                    'integrator': hparams,
+                    'max_depth': hparams['max_depth'],
+                    'reparam_max_depth': hparams['reparam_max_depth'],
+                    'sigma_annealing': True,
+                    'anneal_const_first':  0,
+                    'anneal_const_last': 10,
+                    'anneal_sigma_min': 1e-2,
+                    'epochs': 30,
+                    'conv_thres': 600, # convergence threshold
+                    'tol': 1e-10, # tolerance for CG
+                    'TR':True,
+                    'aggregate': True,
+                    'TR_bound': 4, # number or 'dynamic'
+                    'HVP':True, # using HVP or full hessian
+                    'NR_max_iter': 1, # max iter for NR line search in CG
+                    'NR_tol': 1e-3, # tolerance for NR line search in CG
+                    'recompute': 5, # recompute the exact residual every n iterations
+                    }   
     BFGS_box_hparams = {'resx': hparams['resx'],
                         'resy': hparams['resy'],
                         'nsamples': hparams['nsamples'],
@@ -168,7 +192,7 @@ if __name__ == '__main__':
     plot_interval = 2000
 
     device = 'cuda'
-    torch.manual_seed(0)
+    # torch.manual_seed(0)
     update_fn = apply_rotation
     
     n_starting_points = 20
@@ -271,10 +295,36 @@ if __name__ == '__main__':
     # np.save(f'./code/results/mug/mug_adam/mug_adam_times_{i}.npy', iter_times)
 
     # My CG:
-    i = 14
+    torch.manual_seed(0)
+    cg_hparams_HVP_agg = {'resx': hparams['resx'],
+                    'resy': hparams['resy'],
+                    'nsamples': hparams['nsamples'],
+                    'sigma': hparams['sigma'],
+                    'render_spp': hparams['render_spp'],
+                    'initial_translation': hparams['initial_translation'],
+                    'gt_translation': hparams['gt_translation'],
+                    'integrator': hparams,
+                    'max_depth': hparams['max_depth'],
+                    'reparam_max_depth': hparams['reparam_max_depth'],
+                    'sigma_annealing': True,
+                    'anneal_const_first':  0,
+                    'anneal_const_last': 11,
+                    'anneal_sigma_min': 1e-2,
+                    'epochs': 30,
+                    'conv_thres': 600, # convergence threshold
+                    'tol': 1e-10, # tolerance for CG
+                    'TR':True,
+                    'aggregate': True,
+                    'TR_bound': 4, # number or 'dynamic'
+                    'HVP':True, # using HVP or full hessian
+                    'NR_max_iter': 1, # max iter for NR line search in CG
+                    'NR_tol': 1e-3, # tolerance for NR line search in CG
+                    'recompute': 5, # recompute the exact residual every n iterations
+                    }   
+    i = 19
     
     initial_translation = initial_translations[i].clone()
-    func_loss, param_loss, iter_times = run_cg_optimization(hparams=cg_hparams.copy(),
+    func_loss, param_loss, iter_times = run_cg_optimization(hparams=cg_hparams_HVP_agg.copy(),
                                                             theta=initial_translation.clone(),
                                                             gt_theta=gt_translation,
                                                             ctx_args=ctx_args.copy(),
@@ -289,9 +339,9 @@ if __name__ == '__main__':
             param_loss = param_loss[:idx+1]
             iter_times = iter_times[:idx]
     iter_times = np.insert(iter_times, 0, 0)
-    np.save(f'./code/results/mug/mug_cg/mug_cg_f_loss_{i}.npy', func_loss)
-    np.save(f'./code/results/mug/mug_cg/mug_cg_param_loss_{i}.npy', param_loss)
-    np.save(f'./code/results/mug/mug_cg/mug_cg_times_{i}.npy', iter_times)
+    np.save(f'./code/results/mug/mug_cg_HVP_agg/mug_cg_HVP_agg_f_loss_{i}.npy', func_loss)
+    np.save(f'./code/results/mug/mug_cg_HVP_agg/mug_cg_HVP_agg_param_loss_{i}.npy', param_loss)
+    np.save(f'./code/results/mug/mug_cg_HVP_agg/mug_cg_HVP_agg_times_{i}.npy', iter_times)
     # My BFGS
     # run_bfgs_optimization(hparams=BFGS_box_hparams,
     #                  theta=initial_translation,

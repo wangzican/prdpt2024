@@ -32,7 +32,7 @@ if __name__ == '__main__':
                'initial_translation': [0.25, -0.25, 0.25],
                'gt_translation': [0, 0, 0],
                'integrator': 'direct_projective',
-               'integrator': 'path',
+            #    'integrator': 'path',
                'max_depth': 6,
                'reparam_max_depth': 2}
     
@@ -44,7 +44,7 @@ if __name__ == '__main__':
                'integrator': hparams,
                'max_depth': hparams['max_depth'],
                'reparam_max_depth': hparams['reparam_max_depth'],
-               'epochs': 300,
+               'epochs': 200,
                'learning_rate': 2e-2, # 1st order
                'sigma_annealing': False,
                'anneal_const_first': 0,
@@ -79,8 +79,8 @@ if __name__ == '__main__':
                     'integrator': hparams,
                     'max_depth': hparams['max_depth'],
                     'reparam_max_depth': hparams['reparam_max_depth'],
-                    'sigma_annealing': True,
-                    'anneal_const_first':  0,
+                    'sigma_annealing': False,
+                    'anneal_const_first':  10,
                     'anneal_const_last': 0,
                     'anneal_sigma_min': 3e-3,
                     'epochs': 400,
@@ -89,7 +89,7 @@ if __name__ == '__main__':
                     'TR':True,
                     'TR_bound': 0.2, # number or 'dynamic'
                     'HVP':True, # using HVP or full hessian
-                    'NR_max_iter': 5, # max iter for NR line search in CG
+                    'NR_max_iter': 1, # max iter for NR line search in CG
                     'NR_tol': 1e-3, # tolerance for NR line search in CG
                     'recompute': 5, # recompute the exact residual every n iterations
                     }    
@@ -155,7 +155,7 @@ if __name__ == '__main__':
                         'anneal_sigma_min': 0.05,
                         'TR':True,
                         'TR_bound': 0.5,
-                        'TR_rate': 0.2,
+                        'TR_rate': 0.3,
                         'learning_rate':5e-2,
                         'line_search_fn': None, #'strong_wolfe',
                         'history_size': 10,
@@ -167,7 +167,7 @@ if __name__ == '__main__':
     plot_interval = 2000
 
     device = 'cuda'
-    # torch.manual_seed(0)
+    torch.manual_seed(0)
     update_fn = apply_transformation
     
     n_starting_points = 20
@@ -224,7 +224,7 @@ if __name__ == '__main__':
     
     #my FR:
     # change in run_grad function  adam_opt->mi_opt
-    # i = 0
+    # i = 9
     # # initial_translation = initial_translations[i].clone().detach().requires_grad_(True)
     # initial_translation = torch.tensor(hparams['initial_translation'],device=device)
     # print(f"Starting point {i} is {initial_translation}")
@@ -249,11 +249,11 @@ if __name__ == '__main__':
     # np.save(f'./code/results/rabbit/rabbit_mi/rabbit_mi_times_{i}.npy', iter_times)
     
     # My adam:
-    # i = 0
+    # i = 9
     # print(f"Starting point {i}")
     # # initial_translation = initial_translations[i].clone().detach().requires_grad_(True)
     # initial_translation = torch.tensor(hparams['initial_translation'],device=device)
-    
+
     # func_loss, param_loss, iter_times = run_grad_optimization(hparams=adam_hparams.copy(),
     #                 theta=initial_translation,
     #                 gt_theta=gt_translation,
@@ -268,13 +268,13 @@ if __name__ == '__main__':
     #         func_loss = func_loss[:idx+1]
     #         param_loss = param_loss[:idx+1]
     #         iter_times = iter_times[:idx+1]
-    
+
     # np.save(f'./code/results/rabbit/rabbit_adam/rabbit_adam_f_loss_{i}.npy', func_loss)
     # np.save(f'./code/results/rabbit/rabbit_adam/rabbit_adam_param_loss_{i}.npy', param_loss)
     # np.save(f'./code/results/rabbit/rabbit_adam/rabbit_adam_times_{i}.npy', iter_times)
 
     # My CG:
-    i = 0
+    i = 1
     
     # initial_translation = initial_translations[i].clone()
     # s = 10, 10, 0.5
