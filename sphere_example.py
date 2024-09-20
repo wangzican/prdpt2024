@@ -342,9 +342,9 @@ if __name__ == '__main__':
                     'reparam_max_depth': hparams['reparam_max_depth'],
                     'sigma_annealing': True,
                     'anneal_const_first': 0,
-                    'anneal_const_last': 10,
+                    'anneal_const_last': 41,
                     'anneal_sigma_min': 5e-2,
-                    'epochs': 30,
+                    'epochs': 60,
                     'conv_thres': 4, # convergence threshold
                     'tol': 1e-4, # tolerance for CG
                     'TR':True,
@@ -353,9 +353,10 @@ if __name__ == '__main__':
                     'aggregate': True,
                     'NR_max_iter': 1, # max iter for NR line search in CG
                     'NR_tol': 1e-3, # tolerance for NR line search in CG
-                    'recompute': 5, # recompute the exact residual every n iterations
+                    'recompute': 1, # recompute the exact residual every n iterations
                     }    
-    i = 3
+    i = 2
+    
     torch.manual_seed(0)
     initial_translation = initial_translations[i].clone()
     func_loss, param_loss, iter_times = run_cg_optimization(hparams=cg_hparams_HVP_agg.copy(),

@@ -536,7 +536,7 @@ def NCG_smooth(f, x0, max_iter, log_func, f_args, kernel_args, sampler_args, opt
             else:
                 # modify the hessian to be pd(follow the gradient)
                 modified = True
-                denom = 1/sigma#d.T@hessian@d
+                denom = 1#d.T@hessian@d
             alpha = -(diff_func(x)@d / denom).item()
             
             step = alpha*d.squeeze()

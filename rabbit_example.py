@@ -17,22 +17,22 @@ if torch.cuda.is_available():
 def apply_transformation(theta, p, mat_id, init_vpos):
     if isinstance(theta, torch.Tensor):
         theta = theta.tolist()
-    trafo = mi.Transform4f.translate([float(theta[0]), float(theta[1]), 0.0]).rotate([0, 1, 0], float(theta[2]) *100.0)
+    trafo = mi.Transform4f.translate([float(theta[0]), float(theta[1]), 0.0]).rotate([0, 1, 0], float(theta[2])*100.0)
 
     p[mat_id] = dr.ravel(trafo @ init_vpos)
     p.update()
 
 if __name__ == '__main__':
 
-    hparams = {'resx': 32,
-               'resy': 32,
-               'nsamples': 1,
+    hparams = {'resx': 64,
+               'resy': 64,
+               'nsamples': 2,
                'sigma': 0.004,
                'render_spp': 32,
                'initial_translation': [0.25, -0.25, 0.25],
                'gt_translation': [0, 0, 0],
                'integrator': 'direct_projective',
-            #    'integrator': 'path',
+               'integrator': 'path',
                'max_depth': 6,
                'reparam_max_depth': 2}
     
@@ -167,7 +167,7 @@ if __name__ == '__main__':
     plot_interval = 2000
 
     device = 'cuda'
-    torch.manual_seed(0)
+    # torch.manual_seed(0)
     update_fn = apply_transformation
     
     n_starting_points = 20
@@ -274,8 +274,33 @@ if __name__ == '__main__':
     # np.save(f'./code/results/rabbit/rabbit_adam/rabbit_adam_times_{i}.npy', iter_times)
 
     # My CG:
-    i = 1
-    
+    cg_hparams = {'resx': hparams['resx'],
+                    'resy': hparams['resy'],
+                    'nsamples': hparams['nsamples'],
+                    'sigma': 0.06,#hparams['sigma'],
+                    'render_spp': hparams['render_spp'],
+                    'initial_translation': hparams['initial_translation'],
+                    'gt_translation': hparams['gt_translation'],
+                    'integrator': hparams,
+                    'max_depth': hparams['max_depth'],
+                    'reparam_max_depth': hparams['reparam_max_depth'],
+                    'sigma_annealing': True,
+                    'anneal_const_first':  20,
+                    'anneal_const_last': 20,
+                    'anneal_sigma_min': 5e-3,
+                    'epochs': 100,
+                    'conv_thres': 700, # convergence threshold
+                    'tol': 1e-10, # tolerance for CG
+                    'TR':True,
+                    'aggregate': True,
+                    'TR_bound': 2, # number or 'dynamic'
+                    'HVP':True, # using HVP or full hessian
+                    'NR_max_iter': 1, # max iter for NR line search in CG
+                    'NR_tol': 1e-3, # tolerance for NR line search in CG
+                    'recompute': 5, # recompute the exact residual every n iterations
+                    }    
+    i = 5
+    torch.manual_seed(4)
     # initial_translation = initial_translations[i].clone()
     # s = 10, 10, 0.5
     
@@ -291,15 +316,15 @@ if __name__ == '__main__':
                                                             print_param=True)
     length = len(func_loss)
     for j, loss_i in enumerate(func_loss):
-        if loss_i < 0.00001:
+        if loss_i < 0.00002:
             idx = j#min(j+6, length-1)
             func_loss = func_loss[:idx+1]
             param_loss = param_loss[:idx+1]
             iter_times = iter_times[:idx]
     iter_times = np.insert(iter_times, 0, 0)
-    np.save(f'./code/results/rabbit/rabbit_cg_HVP/rabbit_cg_HVP_f_loss_{i}.npy', func_loss)
-    np.save(f'./code/results/rabbit/rabbit_cg_HVP/rabbit_cg_HVP_param_loss_{i}.npy', param_loss)
-    np.save(f'./code/results/rabbit/rabbit_cg_HVP/rabbit_cg_HVP_times_{i}.npy', iter_times)
+    np.save(f'./code/results/rabbit/rabbit_cg_HVP_agg/rabbit_cg_HVP_agg_f_loss_{i}.npy', func_loss)
+    np.save(f'./code/results/rabbit/rabbit_cg_HVP_agg/rabbit_cg_HVP_agg_param_loss_{i}.npy', param_loss)
+    np.save(f'./code/results/rabbit/rabbit_cg_HVP_agg/rabbit_cg_HVP_agg_times_{i}.npy', iter_times)
     
     # My BFGS
     # run_bfgs_optimization(hparams=BFGS_box_hparams,
