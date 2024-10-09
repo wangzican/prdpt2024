@@ -140,7 +140,6 @@ def smoothFn_hessian(func, sampler, n, f_args, kernel_args, sampler_args, aggreg
     n is number of samples
     Returns a function that takes input tensor and returns the hessian
     '''
-    # TODO: make more than 2D
     def hess(input):
         '''
         input should be tensor of shape (1, m)

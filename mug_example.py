@@ -331,6 +331,7 @@ if __name__ == '__main__':
                                                             update_fn=update_fn,
                                                             plot_initial=plot_initial,
                                                             plot_interval=plot_interval)
+    
     length = len(func_loss)
     for j, loss_i in enumerate(func_loss):
         if loss_i < 0.00000005:
@@ -339,9 +340,11 @@ if __name__ == '__main__':
             param_loss = param_loss[:idx+1]
             iter_times = iter_times[:idx]
     iter_times = np.insert(iter_times, 0, 0)
+    
     np.save(f'./code/results/mug/mug_cg_HVP_agg/mug_cg_HVP_agg_f_loss_{i}.npy', func_loss)
     np.save(f'./code/results/mug/mug_cg_HVP_agg/mug_cg_HVP_agg_param_loss_{i}.npy', param_loss)
     np.save(f'./code/results/mug/mug_cg_HVP_agg/mug_cg_HVP_agg_times_{i}.npy', iter_times)
+    
     # My BFGS
     # run_bfgs_optimization(hparams=BFGS_box_hparams,
     #                  theta=initial_translation,
