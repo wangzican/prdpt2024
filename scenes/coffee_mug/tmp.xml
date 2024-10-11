@@ -4,7 +4,7 @@
 
 	<default name="spp" value="4096"/>
 	<default name="resx" value="256"/>
-	<default name="resy" value="192"/>
+	<default name="resy" value="256"/>
 
 <!-- Camera and Rendering Parameters -->
 
