@@ -1,0 +1,14 @@
+digraph {
+    rankdir=BT;
+    graph [dpi=50 fontname=Consolas];
+    node [shape=record fontname=Consolas];
+    edge [fontname=Consolas];
+    1 [label="{unnamed|{a1|S:1|R:1}}" fillcolor=yellowgreen style=filled];
+    subgraph cluster_legend {
+        label="Legend";
+        l4 [style=filled fillcolor=yellowgreen label="Gradient present"];
+        l3 [style=filled fillcolor=salmon label="Input"];
+        l2 [style=filled fillcolor=lightblue2 label="Output"];
+        l1 [style=filled fillcolor=wheat label="Labeled"];
+    }
+}
