@@ -788,3 +788,78 @@ def BFGS_opt(func, x0, max_iter, log_func, f_args, kernel_args, sampler_args, op
             sigma = sigma_scheduler(i, opt_args, sigma)
             
     return x0, img_errors, param_errors
+
+
+def Nonlinear_CG(f, x0, max_iter, f_args, kernel_args, sampler_args, opt_args, ctx_args, device='cuda'):
+    """
+    Non-linear CG for minimizing the function f.
+    x0: initial guess as a row vector
+    ctx_args: 'nsamples'
+    opt_args: convergence: 'epochs', 'conv_thres(whole number)', 'tol'
+              line search: 'NR_max_iter', 'NR_tol', 'TR(T/F)', 'TR_bound(fixed value or 'dynamic')'
+              hessian: 'HVP(T/F)', 'recompute',
+              sigma: 'sigma_annealing', 'sigma', 'anneal_const_first', 'anneal_sigma_min', 'anneal_const_last'
+              logging:  'plot_interval'
+    """
+    self_kernel_args = kernel_args.copy()
+    self_sampler_args = sampler_args.copy()
+    NR_max_iter = opt_args['NR_max_iter']
+    NR_tol = opt_args['NR_tol']
+    recompute = opt_args['recompute']
+    n_samples = ctx_args['nsamples']
+    TR = opt_args.get('TR', False)
+    TR_bound = opt_args.get('TR_bound', 'dynamic') # fixed value or dynamic
+    Using_HVP = opt_args.get('HVP', True) # use faster HVP instead
+    sigma = self_kernel_args['sigma']
+    aggregate = opt_args.get('aggregate', False)
+    
+    print('Starting NCG with sigma: {:2f}, TR: {}, TR_bound: {}, HVP: {}'.format(sigma, TR, TR_bound, Using_HVP))
+    diff_func = smoothFn_gradient(func=f, sampler='importance_gradgauss', n=n_samples, f_args=f_args,
+                            kernel_args=self_kernel_args, sampler_args=self_sampler_args, aggregate=aggregate, device=device) 
+    hess_func = smoothFn_hessian(func=f, sampler='importance_hessgauss', n=n_samples, f_args=f_args,
+                                kernel_args=self_kernel_args, sampler_args=self_sampler_args, device=device)
+    hvp_func = smoothFn_hv_fd(func=f, n=n_samples, f_args=f_args, kernel_args=self_kernel_args, sampler_args=self_sampler_args, epsilon=sigma/3, aggregate=aggregate, device=device)
+    
+    img_errors, param_errors, iter_times = [], [], []
+    x = x0.unsqueeze(0)
+    k = 0
+    r = -diff_func(x).T # r should be column vector
+    d = r
+    delta_new = (r.T@r).item()
+    for i in range(max_iter):
+        start_time = time.time()
+        delta_d = d.T@d
+        for j in range(NR_max_iter): # newton-ralphson iterative approximation
+            if Using_HVP:
+                hvp = hvp_func(x, d).T
+            else:
+                hvp = hess_func(x)@d
+            # print('full: ', hess_func(x)@d)
+            # print('hvp: ', hvp_func(x, d).T)
+            denom = d.T@hvp
+            if denom <= 0:
+                denom = 1
+            alpha = -(diff_func(x)@d / denom).item()
+            step = alpha*d.squeeze()
+            if step.norm() > TR_bound and TR:
+                step = step/step.norm()*TR_bound
+            x = x + step
+            if alpha**2 * delta_d <= NR_tol:
+                break
+        r = -diff_func(x).T
+        delta_old = delta_new
+        delta_new = r.T@r
+        beta = delta_new/delta_old
+        d = r + beta*d
+        
+        if k>=recompute or r.T@d <=0: # restart whenever a search direction is computed that is not descent direction
+            k = 0
+            d = r
+        # if param_errors and param_errors[-1] < 0.03:
+        #     hessian_epsilon = 8e-4
+        end_time = time.time()
+        iter_times.append(end_time-start_time)
+            
+            
+    return x, img_errors, param_errors, iter_times
+
